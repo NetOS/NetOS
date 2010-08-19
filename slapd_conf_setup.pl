@@ -12,9 +12,10 @@ my $domain;
 my $base_dn;
 my $admin_password;
 my @temp_array;
-my @paths = ("/etc/openldap/slapd.conf","/usr/local/etc/openldap/slapd.conf");
+my @paths = ("/etc/openldap/","/usr/local/etc/openldap/");
+my $path = check_for_config_file(@paths);
 
-my $config_file = check_for_config_file(@paths);
+my $config_file = $path. "slapd.conf";
 
 my ($opt,$usage) = describe_options('slapd_conf_setup.pl %o',['admin|a=s',"The admin user name"],['domain|d=s',"The domain name for your organization"],['help|h',"Print usage message and exit"],["example usage:"],["slapd_conf_setup.pl -a=admin -d=test.com"]);
 
@@ -64,10 +65,19 @@ my $temp_config = $config_file."~";
 open SLAPDNEW, ">$temp_config" or die "Can't open temp config file";
 while(<SLAPDOLD>)
 {
-	$_ =~ s/^suffix\s+.+/suffix\t\t"$base_dn"/;
-	$_ =~ s/^rootdn\s+.+/rootdn\t\t"$admin_user"/;
-	$_ =~ s/^rootpw\s+.+/rootpw\t\t$hashed_password/;
-	print SLAPDNEW $_;
+	my $line;
+	if($_ =~ m/^include/)
+	{
+		$line = $_ . "include\t\t$path" . "schema/cosine.schema\ninclude\t\t$path" . "schema/inetorgperson.schema\n";
+	}
+	else
+	{
+		$_ =~ s/^suffix\s+.+/suffix\t\t"$base_dn"/;
+		$_ =~ s/^rootdn\s+.+/rootdn\t\t"$admin_user"/;
+		$_ =~ s/^rootpw\s+.+/rootpw\t\t$hashed_password/;
+		$line = $_;
+	}
+	print SLAPDNEW $line;
 }
 rename $temp_config,$config_file;
 close SLAPDNEW;
@@ -78,7 +88,7 @@ sub check_for_config_file
 	my @paths = @_;
 	foreach my $path (@paths)
 	{
-		if(-e $path)
+		if(-e "$path/slapd.conf")
 		{
 			return $path;
 		}
