@@ -14,7 +14,7 @@ my $company;
 my $admin_password;
 my @temp_array;
 
-my ($opt,$usage) = describe_options('slapd_conf_setup.pl %o',['admin|a=s',"The admin user name"],['domain|d=s',"The domain name for your organization"],['company|c=s',"The company name"],['help|h',"Print usage message and exit"],["example usage:"],["slapd_conf_setup.pl -a=admin -d=test.com"]);
+my ($opt,$usage) = describe_options('add_admin_user.pl %o',['admin|a=s',"The admin user name"],['domain|d=s',"The domain name for your organization"],['company|c=s',"The company name"],['help|h',"Print usage message and exit"],["example usage:"],["slapd_conf_setup.pl -a=admin -d=test.com"]);
 
 print ($usage->text), exit if $opt->help;
 
