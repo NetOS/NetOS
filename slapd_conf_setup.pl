@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # openLDAP slapd.conf setup
 # run to configure slapd.conf
-# version .1
+# version .3
 
 use strict;
 use Getopt::Long::Descriptive;
