@@ -80,6 +80,18 @@ while(<SLAPDOLD>)
 	print SLAPDNEW $line;
 }
 print SLAPDNEW "# Define global ACLs to disable default read access.\ninclude $path" . "slapd.access.conf";
+my $ssl_path = $path . "ssl";
+
+my $ssl =<<"END";
+
+
+TLSCipherSuite HIGH:MEDIUM:-SSLv2
+TLSCACertificateFile $ssl_path/ldap_server.pem
+TLSCertificateFile $ssl_path/ldap_server.pem
+TLSCertificateKeyFile $ssl_path/ldap_server.pem
+END
+
+print SLAPDNEW $ssl;
 
 rename $temp_config,$config_file;
 close SLAPDNEW;
