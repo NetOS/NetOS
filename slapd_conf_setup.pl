@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # openLDAP slapd.conf setup
 # run to configure slapd.conf
-# version .3
+# version .4
 
 use strict;
 use Getopt::Long::Descriptive;
@@ -79,6 +79,8 @@ while(<SLAPDOLD>)
 	}
 	print SLAPDNEW $line;
 }
+print SLAPDNEW "# Define global ACLs to disable default read access.\ninclude $path" . "slapd.access.conf";
+
 rename $temp_config,$config_file;
 close SLAPDNEW;
 close SLAPDOLD;

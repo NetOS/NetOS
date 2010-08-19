@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # openLDAP add accounts
 # used to add accounts
+# still very manual and needs to be improved before the general public uses this.  Mainly a wrapper to make adding users easier
 # version .1
 
 use strict;
@@ -14,7 +15,7 @@ my $company;
 my $user_password;
 my @temp_array;
 
-my ($opt,$usage) = describe_options('slapd_conf_setup.pl %o',['user|u=s',"The user name"],['domain|d=s',"The domain name for your organization"],['company|c=s',"The company name"],['help|h',"Print usage message and exit"],["example usage:"],["slapd_conf_setup.pl -u=user -d=test.com"]);
+my ($opt,$usage) = describe_options('add_user.pl %o',['user|u=s',"The user name"],['domain|d=s',"The domain name for your organization"],['company|c=s',"The company name"],['help|h',"Print usage message and exit"],["example usage:"],["slapd_conf_setup.pl -u=user -d=test.com"]);
 
 print ($usage->text), exit if $opt->help;
 
