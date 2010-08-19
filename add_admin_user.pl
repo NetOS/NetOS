@@ -73,5 +73,6 @@ cn: Admin
 END
 
 print LDIF $temp;
+close LDIF;
 system("ldapadd -x -D \"$admin_user\" -W -f /tmp/admin.ldif");
 `rm /tmp/admin.ldif`;
