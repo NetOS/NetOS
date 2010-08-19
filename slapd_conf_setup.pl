@@ -5,6 +5,7 @@
 
 use strict;
 use Getopt::Long::Descriptive;
+use Term::ReadKey;
 
 my $admin_user;
 my $domain;
@@ -35,7 +36,10 @@ if(!defined($admin_user))
 }
 
 print "Enter your admin password: ";
-$admin_password = <STDIN>;
+
+ReadMode('noecho');
+$admin_password = ReadLine(0);
+ReadMode('normal');
 
 #taking the user input and switching it to dc=domain,dc=com
 @temp_array = split(/\./,$domain);
@@ -48,6 +52,32 @@ foreach my $element (@temp_array)
 chop($base_dn); #getting rid of that extra , at the end
 chomp($admin_user);
 $admin_user = "cn=$admin_user,$base_dn";
+
+#### Write the password to root's home directory in theory making it really hard to compromise but will allow an admin to get it in case they forget ####
+open PASS, ">/root/slap_passwd" or die "You need root privileges to run this.  Either su or sudo or something.";
+print PASS $admin_password;
+close PASS;
+###########
+
+#### Generate a hashed password for the admin in ldap from the password file ####
+my $hashed_password = `slappasswd -h {MD5} -T /root/slap_passwd`;
+chomp($hashed_password);
+#########
+
+#### open slapd config file and edit it ####
+open SLAPDOLD, "<$config_file" or die "Can't open original config file";
+my $temp_config = $config_file."~";
+open SLAPDNEW, ">$temp_config" or die "Can't open temp config file";
+while(<SLAPDOLD>)
+{
+	$_ =~ s/^suffix\s+.+/suffix\t\t"$base_dn"/;
+	$_ =~ s/^rootdn\s+.+/rootdn\t\t"$admin_user"/;
+	$_ =~ s/^rootpw\s+.+/rootpw\t\t$hashed_password/;
+	print SLAPDNEW $_;
+}
+rename $temp_config,$config_file;
+close SLAPDNEW;
+close SLAPDOLD;
 
 sub check_for_config_file
 {
