@@ -53,14 +53,8 @@ chop($base_dn); #getting rid of that extra , at the end
 chomp($admin_user);
 $admin_user = "cn=$admin_user,$base_dn";
 
-#### Write the password to root's home directory in theory making it really hard to compromise but will allow an admin to get it in case they forget ####
-open PASS, ">/root/slap_passwd" or die "You need root privileges to run this.  Either su or sudo or something.";
-print PASS $admin_password;
-close PASS;
-###########
-
-#### Generate a hashed password for the admin in ldap from the password file ####
-my $hashed_password = `slappasswd -h {MD5} -T /root/slap_passwd`;
+#### Generate a hashed password for the admin in ldap####
+my $hashed_password = `slappasswd -h {MD5} -s $admin_password`;
 chomp($hashed_password);
 #########
 
