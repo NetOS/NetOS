@@ -62,6 +62,7 @@ chomp($company);
 open LDIF, ">/tmp/admin.ldif";
 my $temp = <<"END";
 dn: $base_dn
+objectclass: top
 objectclass: dcObject
 objectclass: organization
 o: $company
@@ -69,6 +70,7 @@ dc: $temp_array[0]
 
 dn: $admin_user
 objectclass: organizationalRole
+objectclass: top
 cn: Admin
 END
 

@@ -1,0 +1,6 @@
+---
+base_dn: 'dc=belfield,dc=us'
+password: justin
+port: 389
+server: daphne
+user: admin
