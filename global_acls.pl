@@ -20,6 +20,8 @@ access to attr=userPassword
         by users read
         by * none
 
+access to attr=cn,entry
+	by * read
 END
 
 open ACLS, ">$config_file";

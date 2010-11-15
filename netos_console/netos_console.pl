@@ -17,11 +17,9 @@ sub draw_window{
 	my $menu_bar = $mw->Menu();
 	$mw->configure(-menu=>$menu_bar);
 	
-	#right and left side list boxes
-	my $right_list_box = $mw->Listbox(-selectmode=>'single',-width=>95,-height=>45);
-	my $left_list_box = $mw->Listbox(-selectmode=>'single',-width=>50,-height=>45);
-	$left_list_box->insert('end');
-	$right_list_box->insert('end');
+	#right and left side boxes
+	my $right_frame = $mw->Listbox(-selectmode=>'single',-width=>95,-height=>45);
+	my $left_tree = $mw->Scrolled('Tree',-command=>sub{my $selection = shift; display_more($selection, $right_frame,$ldap)},-width=>50,-height=>53);
 	
 	#menu buttons
 	my $file_btn = $menu_bar -> cascade(-label=>"File", -underline=>0, -tearoff => 0);
@@ -31,17 +29,16 @@ sub draw_window{
 	#submenu buttons
 	$file_btn->command(-label =>"Exit", -underline => 1,-command => sub { exit } );
 	$edit_btn->command(-label => "Settings", -underline => 2,-command => sub { display_edit_settings() } );
-	$action_btn->command(-label => "Connect", -underline => 0, -command => sub {$ldap = ldap_bind($ldap); populate_tree($ldap,$left_list_box)});
+	$action_btn->command(-label => "Connect", -underline => 0, -command => sub {$ldap = ldap_bind($ldap); populate_tree($ldap,$left_tree); $left_tree->autosetmode()});
 	$action_btn->command(-label => "Add User", -underline=>2, -command=> sub{ add_user() } );
 	$action_btn->command(-label => "Delete User", -underline=>2, -command=> sub{ del_user() } );
-	$action_btn->command(-label => "Edit User", -underline=>2, -command=> sub{ edit_user() } );
+	$action_btn->command(-label => "Edit Object", -underline=>5, -command=> sub{ display_object($right_frame->get($right_frame->curselection())) } );
 	$action_btn->separator();
 	$action_btn->command(-label => "Create OU", -underline=>0, -command=> sub{ create_ou() } );
 	$action_btn->command(-label => "Delete OU", -underline=>4, -command=> sub{ del_ou() } );
-	$action_btn->command(-label => "Edit OU", -underline=>5, -command=> sub{ edit_ou() } );
 
-	$left_list_box->grid(-row=>1,-column=>1);
-	$right_list_box->grid(-row=>1,-column=>2);	
+	$left_tree->grid(-row=>1,-column=>1);
+	$right_frame->grid(-row=>1,-column=>2);
 	
 	MainLoop;
 }
@@ -72,7 +69,7 @@ sub edit_ou{
 
 sub populate_tree{
 	my $l = shift;
-	my $list_box = shift;
+	my $tree = shift;
 	
 	my $settings;
 	if(-e "settings.yml")
@@ -84,24 +81,114 @@ sub populate_tree{
 		#display a warning somehow that they need to go edit the connection settings first.
 	}
 	
-	my $result = $l->search(base => "$settings->{'base_dn'}", scope => "sub", filter => "(objectclass=top)");
+	my $result = $l->search(base => "$settings->{'base_dn'}", scope => "sub", filter => "(objectclass=organizationalUnit)");
 
 	#$result->code && die $result->error;
 
-	my $list_length = $list_box->size();
-	$list_box->delete(0,$list_length);
-	my $i = 0;
+	#clear the box
+	$tree->delete('all');
+	#add the base
+	#let me explain myself because I am sure in the morning I will not remember what I did here.
+	#basically the ldap dn is structure very closely to how the Tree widget from Tk wants data to be.
+	#the only problem is if I did a straight split and then loop over the array and build the tree from that then the results would be in the opposite order
+	#so instead what I do is take the dn and split that into an array and then loop over it starting at the highest element working my way back
+	#this gives the tree the loop of the ldap tree.  Might be a better way to do this but this works.
+	my @base_dn = split(/\,/,$settings->{'base_dn'});
+	my $j = @base_dn;
+	my $dc = "";
+	while($j != 0)
+	{
+		$j--;
+		if(($j + 1) == @base_dn){
+			$dc =$base_dn[$j];
+		} else {
+			$dc .= ".$base_dn[$j]";
+		}
+		
+		$tree->add($dc,-text=>$base_dn[$j]);
+	}
+
 	foreach my $entry ($result->entries)
 	{
-		if(defined($entry->get_value('ou')))
-		{
-			$list_box->insert($i, $entry->get_value('ou'));
+		my $pos;
+		my @dn = split(/\,/,$entry->dn());
+		my $i = @dn;
+		while($i != 0){
+			$i--; #we are reversing the layout of the dn, basically flopping it so it fits the Tk tree model
+			$pos .= "$dn[$i].";
+			if($i == 0){
+				chop($pos); #removes the trailing . that doesn't need to be there
+			}
 		}
-		if(defined($entry->get_value('cn')))
+		$tree->add($pos,-text=>"ou=" . $entry->get_value('ou'));
+	}
+}
+
+sub display_more{
+	my $selection = shift;
+	my $right_frame = shift;
+	my $l = shift;
+	
+	#clear list box
+	my $size = $right_frame->size();
+	$right_frame->delete(0,$size);
+	my @temp = split(/\./,$selection);
+	my $base_dn = "";
+	my $i = @temp;
+	while($i != 0) #flipping the order back around so it looks like a proper dn
+	{
+		$i--;
+		$base_dn .= $temp[$i]. ",";
+	}
+	chop($base_dn); #gets rid of the extra ,
+	my $result = $l->search(base => "$base_dn", scope => "one", filter => "(objectclass=top)");
+	$i = @temp; 
+	$i = $i - 1; #used to get the last value in the temp array.
+	foreach my $entry ($result->entries)
+	{
+		if($entry->exists('ou'))
 		{
-			$list_box->insert($i, $entry->get_value('cn'));
+			my $j = "ou=" . $entry->get_value('ou');
+			if($temp[$i] ne $j) #temp[@temp] should be the last ou in the dn.  this will exclude that being showed in the right pane so people don't get confused.
+			{
+				$right_frame->insert('end',$entry->get_value('ou'));
+			}
 		}
-		$i++;
+		else
+		{
+			$right_frame->insert('end',$entry->get_value('cn'));
+		}
+	}
+}
+
+sub display_object{
+	my $selection = shift;
+	
+	if(defined($selection))
+	{
+		warn $selection;
+		my $object_window = new MainWindow;
+		$object_window->geometry('640x480');
+
+		my %ou = ('Name' => 'text');
+		my %user = (1 => {'First Name' => 'text'},2 => {'Middle Initial' => 'text'}, 3 => {'Surname' => 'text'});
+		my @hash_order = keys %user;
+		@hash_order = sort {$a <=> $b} @hash_order;
+		my @labels;
+		foreach my $key (@hash_order)
+		{
+			my $temp_hashref = $user{$key};
+			push(@labels,$object_window->Label(-text => keys %$temp_hashref)); 
+		}
+		my $i = 1; #row incrementer
+
+		foreach my $label (@labels)
+		{
+			$label->grid(-row => $i, -column => 1);
+			$i++;
+		}
+		
+		MainLoop;
 	}
 }
 
