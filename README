@@ -1,5 +1,7 @@
 Welcome to NetOS!
 
+*UPDATE* 2/11/15 - Starting back on this project.  Changing the management piece to a web app using Mojolicious as the framework.
+
 NetOS is an attempt to get the network operating system correct.  As a long time network administrator I feel that today's offerings just don't cut it.
 I started using Netware and life was good until Novell dropped the ball on getting their great product out to the masses so this project will attempt to recreate the power and joy of using Netware with all open source software.  The base of the operating system will be FreeBSD and this project will initially provide all of the scripts and management tools required to create a fully functional network operating system.  Make no mistake this project will focus purely on providing a great server that is easy to configure and we will not be creating some distro that can be used as a desktop.
 
